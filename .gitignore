@@ -1,0 +1,37 @@
+# Repository scope: publish only the miniRV project
+/*
+!/.gitignore
+!/miniRV/
+
+# macOS metadata and application backup files
+.DS_Store
+**/.DS_Store
+._*
+.$*.bkp
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Simulation outputs
+**/obj_dir/
+**/waveform/
+*.vcd
+*.vvp
+*.wdb
+xsim.dir/
+
+# Vivado generated state and build products
+.Xil/
+*.jou
+*.log
+*.pb
+*.dcp
+*.str
+*.xsim
+*.xml.bak
+miniRV/miniRV.cache/
+miniRV/miniRV.gen/
+miniRV/miniRV.hw/
+miniRV/miniRV.ip_user_files/
+miniRV/miniRV.runs/
