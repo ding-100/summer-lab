@@ -48,10 +48,12 @@ module MREQ (
         if (ram_rop != `RAM_EXT_N) begin
             case (ram_rop)
                 `RAM_EXT_B, `RAM_EXT_BU: da_ren = 4'hF;
+                // 字节对齐
                 `RAM_EXT_H, `RAM_EXT_HU: da_ren = !offset[0] ? 4'hF : 4'h0;
                 default    : da_ren = (offset == 2'h0) ? 4'hF : 4'h0;                       // lw
             endcase
-        end else
+        end 
+        else
             da_ren = 4'h0;
     end
 

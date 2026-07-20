@@ -10,8 +10,8 @@ Disassembly of section .text.init:
 00000004 <reset_vector>:
        4:	02500413          	addi	x8,x0,37
        8:	01841413          	slli	x8,x8,0x18
-       c:	ffff20b7          	ui	x1,0xffff2
-      10:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+       c:	ffff20b7          	lui	x1,0xffff2
+      10:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
       14:	27c00fef          	jal	x31,290 <n1_add_test>
       18:	00000013          	addi	x0,x0,0
       1c:	25c00fef          	jal	x31,278 <wait_1s>
@@ -283,8 +283,8 @@ Disassembly of section .text.init:
      3d4:	40b00193          	addi	x3,x0,1035
      3d8:	e8711ce3          	bne	x2,x7,270 <fail>
      3dc:	00140413          	addi	x8,x8,1
-     3e0:	ffff20b7          	ui	x1,0xffff2
-     3e4:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     3e0:	ffff20b7          	lui	x1,0xffff2
+     3e4:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      3e8:	000f80e7          	jalr	x1,0(x31)
 
 000003ec <n2_addi_test>:
@@ -367,8 +367,8 @@ Disassembly of section .text.init:
      4d4:	7e800193          	addi	x3,x0,2024
      4d8:	d8709ce3          	bne	x1,x7,270 <fail>
      4dc:	00140413          	addi	x8,x8,1
-     4e0:	ffff20b7          	ui	x1,0xffff2
-     4e4:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     4e0:	ffff20b7          	lui	x1,0xffff2
+     4e4:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      4e8:	000f80e7          	jalr	x1,0(x31)
 
 000004ec <n3_and_test>:
@@ -450,8 +450,8 @@ Disassembly of section .text.init:
      5f0:	bd018193          	addi	x3,x3,-1072 # bd0 <test_12015+0x24>
      5f4:	c6711ee3          	bne	x2,x7,270 <fail>
      5f8:	00140413          	addi	x8,x8,1
-     5fc:	ffff20b7          	ui	x1,0xffff2
-     600:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     5fc:	ffff20b7          	lui	x1,0xffff2
+     600:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      604:	000f80e7          	jalr	x1,0(x31)
 
 00000608 <n4_andi_test>:
@@ -504,8 +504,8 @@ Disassembly of section .text.init:
      6a0:	fad18193          	addi	x3,x3,-83 # fad <test_16018+0x1>
      6a4:	bc7096e3          	bne	x1,x7,270 <fail>
      6a8:	00140413          	addi	x8,x8,1
-     6ac:	ffff20b7          	ui	x1,0xffff2
-     6b0:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     6ac:	ffff20b7          	lui	x1,0xffff2
+     6b0:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      6b4:	000f80e7          	jalr	x1,0(x31)
 
 000006b8 <n5_beq_test>:
@@ -562,8 +562,8 @@ Disassembly of section .text.init:
      760:	39d18193          	addi	x3,x3,925 # 139d <test_19040+0x15>
      764:	b07096e3          	bne	x1,x7,270 <fail>
      768:	00140413          	addi	x8,x8,1
-     76c:	ffff20b7          	ui	x1,0xffff2
-     770:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     76c:	ffff20b7          	lui	x1,0xffff2
+     770:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      774:	000f80e7          	jalr	x1,0(x31)
 
 00000778 <n6_bge_test>:
@@ -621,8 +621,8 @@ Disassembly of section .text.init:
      824:	78818193          	addi	x3,x3,1928 # 1788 <test_22018+0x24>
      828:	a47094e3          	bne	x1,x7,270 <fail>
      82c:	00140413          	addi	x8,x8,1
-     830:	ffff20b7          	ui	x1,0xffff2
-     834:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     830:	ffff20b7          	lui	x1,0xffff2
+     834:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      838:	000f80e7          	jalr	x1,0(x31)
 
 0000083c <n7_blt_test>:
@@ -679,8 +679,8 @@ Disassembly of section .text.init:
      8e4:	b6d18193          	addi	x3,x3,-1171 # 1b6d <test_2705+0x1d>
      8e8:	987094e3          	bne	x1,x7,270 <fail>
      8ec:	00140413          	addi	x8,x8,1
-     8f0:	ffff20b7          	ui	x1,0xffff2
-     8f4:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     8f0:	ffff20b7          	lui	x1,0xffff2
+     8f4:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      8f8:	000f80e7          	jalr	x1,0(x31)
 
 000008fc <n8_bne_test>:
@@ -737,8 +737,8 @@ Disassembly of section .text.init:
      9a4:	f5518193          	addi	x3,x3,-171 # 1f55 <test_30012+0x2d>
      9a8:	8c7094e3          	bne	x1,x7,270 <fail>
      9ac:	00140413          	addi	x8,x8,1
-     9b0:	ffff20b7          	ui	x1,0xffff2
-     9b4:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     9b0:	ffff20b7          	lui	x1,0xffff2
+     9b4:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      9b8:	000f80e7          	jalr	x1,0(x31)
 
 000009bc <n9_jal_test>:
@@ -769,8 +769,8 @@ Disassembly of section .text.init:
      a04:	38700193          	addi	x3,x0,903
      a08:	867094e3          	bne	x1,x7,270 <fail>
      a0c:	00140413          	addi	x8,x8,1
-     a10:	ffff20b7          	ui	x1,0xffff2
-     a14:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     a10:	ffff20b7          	lui	x1,0xffff2
+     a14:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      a18:	000f80e7          	jalr	x1,0(x31)
 
 00000a1c <n10_jalr_test>:
@@ -828,8 +828,8 @@ Disassembly of section .text.init:
      ab0:	00700193          	addi	x3,x0,7
      ab4:	fa729e63          	bne	x5,x7,270 <fail>
      ab8:	00140413          	addi	x8,x8,1
-     abc:	ffff20b7          	ui	x1,0xffff2
-     ac0:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     abc:	ffff20b7          	lui	x1,0xffff2
+     ac0:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      ac4:	000f80e7          	jalr	x1,0(x31)
 
 00000ac8 <n11_lui_test>:
@@ -844,8 +844,8 @@ Disassembly of section .text.init:
      ae0:	45200193          	addi	x3,x0,1106
      ae4:	f8701663          	bne	x0,x7,270 <fail>
      ae8:	00140413          	addi	x8,x8,1
-     aec:	ffff20b7          	ui	x1,0xffff2
-     af0:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     aec:	ffff20b7          	lui	x1,0xffff2
+     af0:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      af4:	000f80e7          	jalr	x1,0(x31)
 
 00000af8 <n12_lw_test>:
@@ -938,8 +938,8 @@ Disassembly of section .text.init:
      c18:	ef318193          	addi	x3,x3,-269 # 2ef3 <test_37035+0x5e3>
      c1c:	e4711a63          	bne	x2,x7,270 <fail>
      c20:	00140413          	addi	x8,x8,1
-     c24:	ffff20b7          	ui	x1,0xffff2
-     c28:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     c24:	ffff20b7          	lui	x1,0xffff2
+     c28:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      c2c:	000f80e7          	jalr	x1,0(x31)
 
 00000c30 <n13_os_test>:
@@ -1022,8 +1022,8 @@ Disassembly of section .text.init:
      d38:	2e018193          	addi	x3,x3,736 # 32e0 <fromhost+0x2a0>
      d3c:	d2711a63          	bne	x2,x7,270 <fail>
      d40:	00140413          	addi	x8,x8,1
-     d44:	ffff20b7          	ui	x1,0xffff2
-     d48:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     d44:	ffff20b7          	lui	x1,0xffff2
+     d48:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      d4c:	000f80e7          	jalr	x1,0(x31)
 
 00000d50 <n14_osi_test>:
@@ -1078,8 +1078,8 @@ Disassembly of section .text.init:
      df0:	6bd18193          	addi	x3,x3,1725 # 36bd <fromhost+0x67d>
      df4:	c6709e63          	bne	x1,x7,270 <fail>
      df8:	00140413          	addi	x8,x8,1
-     dfc:	ffff20b7          	ui	x1,0xffff2
-     e00:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     dfc:	ffff20b7          	lui	x1,0xffff2
+     e00:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      e04:	000f80e7          	jalr	x1,0(x31)
 
 00000e08 <n15_sll_test>:
@@ -1177,8 +1177,8 @@ Disassembly of section .text.init:
      f34:	ac018193          	addi	x3,x3,-1344 # 3ac0 <fromhost+0xa80>
      f38:	b2711c63          	bne	x2,x7,270 <fail>
      f3c:	00140413          	addi	x8,x8,1
-     f40:	ffff20b7          	ui	x1,0xffff2
-     f44:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+     f40:	ffff20b7          	lui	x1,0xffff2
+     f44:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
      f48:	000f80e7          	jalr	x1,0(x31)
 
 00000f4c <n16_slli_test>:
@@ -1245,8 +1245,8 @@ Disassembly of section .text.init:
     100c:	e9818193          	addi	x3,x3,-360 # 3e98 <fromhost+0xe58>
     1010:	a6709063          	bne	x1,x7,270 <fail>
     1014:	00140413          	addi	x8,x8,1
-    1018:	ffff20b7          	ui	x1,0xffff2
-    101c:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1018:	ffff20b7          	lui	x1,0xffff2
+    101c:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     1020:	000f80e7          	jalr	x1,0(x31)
 
 00001024 <n17_sra_test>:
@@ -1346,8 +1346,8 @@ Disassembly of section .text.init:
     1158:	29018193          	addi	x3,x3,656 # 4290 <_end+0x220>
     115c:	90711a63          	bne	x2,x7,270 <fail>
     1160:	00140413          	addi	x8,x8,1
-    1164:	ffff20b7          	ui	x1,0xffff2
-    1168:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1164:	ffff20b7          	lui	x1,0xffff2
+    1168:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     116c:	000f80e7          	jalr	x1,0(x31)
 
 00001170 <n18_srai_test>:
@@ -1416,8 +1416,8 @@ Disassembly of section .text.init:
     1238:	66818193          	addi	x3,x3,1640 # 4668 <_end+0x5f8>
     123c:	82709a63          	bne	x1,x7,270 <fail>
     1240:	00140413          	addi	x8,x8,1
-    1244:	ffff20b7          	ui	x1,0xffff2
-    1248:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1244:	ffff20b7          	lui	x1,0xffff2
+    1248:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     124c:	000f80e7          	jalr	x1,0(x31)
 
 00001250 <n19_srl_test>:
@@ -1523,8 +1523,8 @@ Disassembly of section .text.init:
     139c:	00710463          	beq	x2,x7,13a4 <test_19040+0x1c>
     13a0:	ed1fe06f          	jal	x0,270 <fail>
     13a4:	00140413          	addi	x8,x8,1
-    13a8:	ffff20b7          	ui	x1,0xffff2
-    13ac:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    13a8:	ffff20b7          	lui	x1,0xffff2
+    13ac:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     13b0:	000f80e7          	jalr	x1,0(x31)
 
 000013b4 <n20_srli_test>:
@@ -1607,8 +1607,8 @@ Disassembly of section .text.init:
     14ac:	00700463          	beq	x0,x7,14b4 <test_20025+0x1c>
     14b0:	dc1fe06f          	jal	x0,270 <fail>
     14b4:	00140413          	addi	x8,x8,1
-    14b8:	ffff20b7          	ui	x1,0xffff2
-    14bc:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    14b8:	ffff20b7          	lui	x1,0xffff2
+    14bc:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     14c0:	000f80e7          	jalr	x1,0(x31)
 
 000014c4 <n21_sub_test>:
@@ -1727,8 +1727,8 @@ Disassembly of section .text.init:
     163c:	00710463          	beq	x2,x7,1644 <test_21034+0x1c>
     1640:	c31fe06f          	jal	x0,270 <fail>
     1644:	00140413          	addi	x8,x8,1
-    1648:	ffff20b7          	ui	x1,0xffff2
-    164c:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1648:	ffff20b7          	lui	x1,0xffff2
+    164c:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     1650:	000f80e7          	jalr	x1,0(x31)
 
 00001654 <n22_sw_test>:
@@ -1827,8 +1827,8 @@ Disassembly of section .text.init:
     179c:	00200293          	addi	x5,x0,2
     17a0:	fc5218e3          	bne	x4,x5,1770 <test_22018+0xc>
     17a4:	00140413          	addi	x8,x8,1
-    17a8:	ffff20b7          	ui	x1,0xffff2
-    17ac:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    17a8:	ffff20b7          	lui	x1,0xffff2
+    17ac:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     17b0:	000f80e7          	jalr	x1,0(x31)
 
 000017b4 <n23_xor_test>:
@@ -1920,8 +1920,8 @@ Disassembly of section .text.init:
     18e0:	00710463          	beq	x2,x7,18e8 <test_23024+0x24>
     18e4:	98dfe06f          	jal	x0,270 <fail>
     18e8:	00140413          	addi	x8,x8,1
-    18ec:	ffff20b7          	ui	x1,0xffff2
-    18f0:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    18ec:	ffff20b7          	lui	x1,0xffff2
+    18f0:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     18f4:	000f80e7          	jalr	x1,0(x31)
 
 000018f8 <n24_xori_test>:
@@ -1985,8 +1985,8 @@ Disassembly of section .text.init:
     19bc:	00708463          	beq	x1,x7,19c4 <test_24013+0x18>
     19c0:	8b1fe06f          	jal	x0,270 <fail>
     19c4:	00140413          	addi	x8,x8,1
-    19c8:	ffff20b7          	ui	x1,0xffff2
-    19cc:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    19c8:	ffff20b7          	lui	x1,0xffff2
+    19cc:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     19d0:	000f80e7          	jalr	x1,0(x31)
 
 000019d4 <n25_auipc_test>:
@@ -2014,8 +2014,8 @@ Disassembly of section .text.init:
     1a20:	00750463          	beq	x10,x7,1a28 <test_2503+0x28>
     1a24:	84dfe06f          	jal	x0,270 <fail>
     1a28:	00140413          	addi	x8,x8,1
-    1a2c:	ffff20b7          	ui	x1,0xffff2
-    1a30:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1a2c:	ffff20b7          	lui	x1,0xffff2
+    1a30:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     1a34:	000f80e7          	jalr	x1,0(x31)
 
 00001a38 <n26_bgeu_test>:
@@ -2083,8 +2083,8 @@ Disassembly of section .text.init:
     1b0c:	00708463          	beq	x1,x7,1b14 <test_26024+0x34>
     1b10:	f60fe06f          	jal	x0,270 <fail>
     1b14:	00140413          	addi	x8,x8,1
-    1b18:	ffff20b7          	ui	x1,0xffff2
-    1b1c:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1b18:	ffff20b7          	lui	x1,0xffff2
+    1b1c:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     1b20:	000f80e7          	jalr	x1,0(x31)
 
 00001b24 <n27_bltu_test>:
@@ -2152,8 +2152,8 @@ Disassembly of section .text.init:
     1bf8:	00708463          	beq	x1,x7,1c00 <test_27021+0x34>
     1bfc:	e74fe06f          	jal	x0,270 <fail>
     1c00:	00140413          	addi	x8,x8,1
-    1c04:	ffff20b7          	ui	x1,0xffff2
-    1c08:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1c04:	ffff20b7          	lui	x1,0xffff2
+    1c08:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     1c0c:	000f80e7          	jalr	x1,0(x31)
 
 00001c10 <n28_lb_test>:
@@ -2250,8 +2250,8 @@ Disassembly of section .text.init:
     1d40:	00710463          	beq	x2,x7,1d48 <test_28019+0x28>
     1d44:	d2cfe06f          	jal	x0,270 <fail>
     1d48:	00140413          	addi	x8,x8,1
-    1d4c:	ffff20b7          	ui	x1,0xffff2
-    1d50:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1d4c:	ffff20b7          	lui	x1,0xffff2
+    1d50:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     1d54:	000f80e7          	jalr	x1,0(x31)
 
 00001d58 <n29_lbu_test>:
@@ -2348,8 +2348,8 @@ Disassembly of section .text.init:
     1e88:	00710463          	beq	x2,x7,1e90 <test_29019+0x28>
     1e8c:	be4fe06f          	jal	x0,270 <fail>
     1e90:	00140413          	addi	x8,x8,1
-    1e94:	ffff20b7          	ui	x1,0xffff2
-    1e98:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1e94:	ffff20b7          	lui	x1,0xffff2
+    1e98:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     1e9c:	000f80e7          	jalr	x1,0(x31)
 
 00001ea0 <n30_lh_test>:
@@ -2448,8 +2448,8 @@ Disassembly of section .text.init:
     1fd8:	00710463          	beq	x2,x7,1fe0 <test_30019+0x28>
     1fdc:	a94fe06f          	jal	x0,270 <fail>
     1fe0:	00140413          	addi	x8,x8,1
-    1fe4:	ffff20b7          	ui	x1,0xffff2
-    1fe8:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    1fe4:	ffff20b7          	lui	x1,0xffff2
+    1fe8:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     1fec:	000f80e7          	jalr	x1,0(x31)
 
 00001ff0 <n31_lhu_test>:
@@ -2549,8 +2549,8 @@ Disassembly of section .text.init:
     212c:	00710463          	beq	x2,x7,2134 <test_31019+0x28>
     2130:	940fe06f          	jal	x0,270 <fail>
     2134:	00140413          	addi	x8,x8,1
-    2138:	ffff20b7          	ui	x1,0xffff2
-    213c:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    2138:	ffff20b7          	lui	x1,0xffff2
+    213c:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     2140:	000f80e7          	jalr	x1,0(x31)
 
 00002144 <n32_sb_test>:
@@ -2643,8 +2643,8 @@ Disassembly of section .text.init:
     2274:	df458593          	addi	x11,x11,-524 # 4064 <tdat_sb>
     2278:	00a581a3          	sb	x10,3(x11)
     227c:	00140413          	addi	x8,x8,1
-    2280:	ffff20b7          	ui	x1,0xffff2
-    2284:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    2280:	ffff20b7          	lui	x1,0xffff2
+    2284:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     2288:	000f80e7          	jalr	x1,0(x31)
 
 0000228c <n33_sh_test>:
@@ -2744,8 +2744,8 @@ Disassembly of section .text.init:
     23d8:	c7c58593          	addi	x11,x11,-900 # 4050 <tdat_sh>
     23dc:	00a59323          	sh	x10,6(x11)
     23e0:	00140413          	addi	x8,x8,1
-    23e4:	ffff20b7          	ui	x1,0xffff2
-    23e8:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    23e4:	ffff20b7          	lui	x1,0xffff2
+    23e8:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     23ec:	000f80e7          	jalr	x1,0(x31)
 
 000023f0 <n34_slt_test>:
@@ -2862,8 +2862,8 @@ Disassembly of section .text.init:
     2560:	00710463          	beq	x2,x7,2568 <test_34035+0x1c>
     2564:	d0dfd06f          	jal	x0,270 <fail>
     2568:	00140413          	addi	x8,x8,1
-    256c:	ffff20b7          	ui	x1,0xffff2
-    2570:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    256c:	ffff20b7          	lui	x1,0xffff2
+    2570:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     2574:	000f80e7          	jalr	x1,0(x31)
 
 00002578 <n35_slti_test>:
@@ -2955,8 +2955,8 @@ Disassembly of section .text.init:
     268c:	00708463          	beq	x1,x7,2694 <test_35024+0x18>
     2690:	be1fd06f          	jal	x0,270 <fail>
     2694:	00140413          	addi	x8,x8,1
-    2698:	ffff20b7          	ui	x1,0xffff2
-    269c:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    2698:	ffff20b7          	lui	x1,0xffff2
+    269c:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     26a0:	000f80e7          	jalr	x1,0(x31)
 
 000026a4 <n36_sltiu_test>:
@@ -3039,8 +3039,8 @@ Disassembly of section .text.init:
     279c:	00708463          	beq	x1,x7,27a4 <test_36024+0x18>
     27a0:	ad1fd06f          	jal	x0,270 <fail>
     27a4:	00140413          	addi	x8,x8,1
-    27a8:	ffff20b7          	ui	x1,0xffff2
-    27ac:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    27a8:	ffff20b7          	lui	x1,0xffff2
+    27ac:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     27b0:	000f80e7          	jalr	x1,0(x31)
 
 000027b4 <n37_sltu_test>:
@@ -3157,8 +3157,8 @@ Disassembly of section .text.init:
     2924:	00710463          	beq	x2,x7,292c <test_37035+0x1c>
     2928:	949fd06f          	jal	x0,270 <fail>
     292c:	00140413          	addi	x8,x8,1
-    2930:	ffff20b7          	ui	x1,0xffff2
-    2934:	0080a023          	sw	x8,0(x1) # fffff000 <_end+0xffffaf90>
+    2930:	ffff20b7          	lui	x1,0xffff2
+    2934:	0080a023          	sw	x8,0(x1) # ffff2000 <_end+0xffffaf90>
     2938:	000f80e7          	jalr	x1,0(x31)
     293c:	c0001073          	unimp
 

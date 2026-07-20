@@ -18,13 +18,32 @@ module divider #(parameter WIDTH = 32)(
         if (rst) begin
             z<=0; r<=0; busy<=0; dividend<=0; divisor<=0; quotient<=0; remainder<=0; count<=0;
         end else if (start && !busy) begin
-            if (y == 0) begin z<={WIDTH{1'b1}}; r<=x; busy<=1; count<=WIDTH; end
-            else begin dividend<=x; divisor<=y; quotient<=0; remainder<=0; count<=0; busy<=1; end
+            if (y == 0) begin 
+                z<={WIDTH{1'b1}}; 
+                r<=x; 
+                busy<=1; 
+                count<=WIDTH; 
+            end
+            else begin 
+                dividend<=x; 
+                divisor<=y; 
+                quotient<=0; 
+                remainder<=0; 
+                count<=0; 
+                busy<=1; 
+            end
         end else if (busy) begin
-            if (count == WIDTH) busy <= 0;
+            if (count == WIDTH) 
+                busy <= 0;
             else begin
-                dividend <= dividend << 1; quotient <= next_quot; remainder <= next_rem;
-                if (count == WIDTH-1) begin z<=next_quot; r<=next_rem; busy<=0; end
+                dividend <= dividend << 1; 
+                quotient <= next_quot; 
+                remainder <= next_rem;
+                if (count == WIDTH-1) begin 
+                    z<=next_quot; 
+                    r<=next_rem; 
+                    busy<=0; 
+                end
                 count <= count + 1'b1;
             end
         end

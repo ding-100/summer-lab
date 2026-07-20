@@ -126,6 +126,87 @@ WB 无显式 FSM，但两个标志构成隐式等待状态：`IDLE(ld_st_flag=0,
 
 整体数据流：普通指令为 `RF/SEXT → 操作数MUX → ALU.c → WB MUX → ↑clk写RF`；Load 为 `ALU地址 → MREQ读请求 → ↑clk锁存请求信息 → 等daccess_rvalid → MEXT取数/扩展 → WB选ram_ext → ↑clk写RF`；Store 为 `ALU地址+RF.rs2 → MREQ写掩码/移位 → ↑clk发请求 → 等daccess_wresp → ↑clk更新PC`；M 指令为 `ALU启动迭代 → busy期间保持PC/rd/op → busy撤销 → WB选alu_c → ↑clk写RF并更新PC`。
 
+## 44 条指令在数据通路图中的对应通路
+
+本节按数据通路图中的器件和端口名称记录每条指令真正有效的路径。所有指令都先经过公共取指通路：
+
+`PC.pc → Inst_ROM.ifetch_addr → Inst_ROM.inst → Controller + RF读地址 + SEXT.imm`。
+
+除分支和跳转外，顺序更新通路均为 `NPC.pc4 → NPC.npc → PC.npc`。表中 `A0/A1` 分别表示 A MUX 选择 `rD1/pc`，`B0/B1` 分别表示 B MUX 选择 `rD2/ext`；`WB0/WB1/WB2/WB3` 分别表示 WB MUX 选择 `ALU.C/MEXT.ext/NPC.pc4/SEXT.ext`。
+
+### 寄存器—寄存器运算（10 条）
+
+| 指令 | 图中有效数据通路 | 选择与 PC 更新 |
+|---|---|---|
+| ADD | `RF.rD1 → A MUX(A0)` + `RF.rD2 → B MUX(B0) → ALU.ADD → ALU.C → WB MUX(WB0) → RF.wD(rd)` | `alua_sel=0, alub_sel=0, rf_wsel=WB_ALU`；`NPC.pc4 → PC` |
+| SUB | `RF.rD1 → A0` + `RF.rD2 → B0 → ALU.SUB → C → WB0 → RF.wD(rd)` | 与 ADD 相同，仅 `alu_op=ALU_SUB`；`PC←pc4` |
+| SLL | `RF.rD1 → A0` + `RF.rD2[4:0] → B0 → ALU.SLL → C → WB0 → RF.wD(rd)` | 移位量取 `rD2[4:0]`；`PC←pc4` |
+| SRL | `RF.rD1 → A0` + `RF.rD2[4:0] → B0 → ALU.SRL → C → WB0 → RF.wD(rd)` | 逻辑右移；`PC←pc4` |
+| SRA | `RF.rD1 → A0` + `RF.rD2[4:0] → B0 → ALU.SRA → C → WB0 → RF.wD(rd)` | 算术右移；`PC←pc4` |
+| SLT | `RF.rD1 → A0` + `RF.rD2 → B0 → ALU.SLT(有符号) → 0/1 → WB0 → RF.wD(rd)` | `PC←pc4` |
+| SLTU | `RF.rD1 → A0` + `RF.rD2 → B0 → ALU.SLTU(无符号) → 0/1 → WB0 → RF.wD(rd)` | `PC←pc4` |
+| XOR | `RF.rD1 → A0` + `RF.rD2 → B0 → ALU.XOR → C → WB0 → RF.wD(rd)` | `PC←pc4` |
+| OR | `RF.rD1 → A0` + `RF.rD2 → B0 → ALU.OR → C → WB0 → RF.wD(rd)` | `PC←pc4` |
+| AND | `RF.rD1 → A0` + `RF.rD2 → B0 → ALU.AND → C → WB0 → RF.wD(rd)` | `PC←pc4` |
+
+### 立即数运算（9 条）
+
+| 指令 | 图中有效数据通路 | 选择与 PC 更新 |
+|---|---|---|
+| ADDI | `RF.rD1 → A0` + `SEXT(EXT_I).ext → B MUX(B1) → ALU.ADD → C → WB0 → RF.wD(rd)` | `alub_sel=1`；`PC←pc4` |
+| SLLI | `RF.rD1 → A0` + `SEXT(EXT_I).ext[4:0] → B1 → ALU.SLL → C → WB0 → RF.wD(rd)` | 移位量为 `inst[24:20]`；`PC←pc4` |
+| SRLI | `RF.rD1 → A0` + `SEXT.ext[4:0] → B1 → ALU.SRL → C → WB0 → RF.wD(rd)` | 逻辑右移；`PC←pc4` |
+| SRAI | `RF.rD1 → A0` + `SEXT.ext[4:0] → B1 → ALU.SRA → C → WB0 → RF.wD(rd)` | 算术右移；`PC←pc4` |
+| SLTI | `RF.rD1 → A0` + `SEXT.ext → B1 → ALU.SLT(有符号) → 0/1 → WB0 → RF.wD(rd)` | `PC←pc4` |
+| SLTIU | `RF.rD1 → A0` + `SEXT.ext → B1 → ALU.SLTU(无符号) → 0/1 → WB0 → RF.wD(rd)` | `PC←pc4` |
+| XORI | `RF.rD1 → A0` + `SEXT.ext → B1 → ALU.XOR → C → WB0 → RF.wD(rd)` | `PC←pc4` |
+| ORI | `RF.rD1 → A0` + `SEXT.ext → B1 → ALU.OR → C → WB0 → RF.wD(rd)` | `PC←pc4` |
+| ANDI | `RF.rD1 → A0` + `SEXT.ext → B1 → ALU.AND → C → WB0 → RF.wD(rd)` | `PC←pc4` |
+
+### Load/Store（8 条）
+
+Load 和 Store 的有效地址共用 `RF.rD1 → A0` 与 `SEXT → B1 → ALU.ADD → ALU.C/ram_addr → MREQ.ram_addr`。对齐访问在请求后保持 PC，直到 Data_RAM 返回响应。
+
+| 指令 | 图中有效数据通路 | 存储器与完成路径 |
+|---|---|---|
+| LB | `rs1+I-ext → ALU.C → MREQ → Data_RAM.daccess_rdata → MEXT(取目标字节+符号扩展) → WB1 → RF.wD(rd)` | `ram_rop=RAM_EXT_B`；`rvalid → 写RF + PC←pc4` |
+| LBU | `rs1+I-ext → MREQ → Data_RAM → MEXT(取字节+零扩展) → WB1 → RF.wD(rd)` | `ram_rop=RAM_EXT_BU`；`rvalid → 写RF + PC←pc4` |
+| LH | `rs1+I-ext → MREQ → Data_RAM → MEXT(取半字+符号扩展) → WB1 → RF.wD(rd)` | `ram_rop=RAM_EXT_H`；仅偏移 0/2 对齐时发请求 |
+| LHU | `rs1+I-ext → MREQ → Data_RAM → MEXT(取半字+零扩展) → WB1 → RF.wD(rd)` | `ram_rop=RAM_EXT_HU`；仅偏移 0/2 有效 |
+| LW | `rs1+I-ext → MREQ → Data_RAM → MEXT(32位直通) → WB1 → RF.wD(rd)` | `ram_rop=RAM_EXT_W`；仅 `addr[1:0]=00` 有效 |
+| SB | `rs1+S-ext → ALU.C → MREQ.ram_addr` + `RF.rD2 → MREQ.ram_wdata → 字节移位/写掩码 → Data_RAM` | `ram_wop=RAM_WE_B`；`wresp → PC←pc4`，不写 RF |
+| SH | `rs1+S-ext → MREQ.ram_addr` + `RF.rD2 → MREQ → 半字移位/掩码 → Data_RAM` | `ram_wop=RAM_WE_H`；仅偏移 0/2 有效；`wresp → PC←pc4` |
+| SW | `rs1+S-ext → MREQ.ram_addr` + `RF.rD2 → MREQ.da_wdata → Data_RAM.data_wdata` | `ram_wop=RAM_WE_W`；仅偏移 0 有效；`wresp → PC←pc4` |
+
+### 分支、跳转和高位立即数（10 条）
+
+| 指令 | 图中有效数据通路 | NPC/WB 选择 |
+|---|---|---|
+| BEQ | `RF.rD1 → A0` + `RF.rD2 → B0 → ALU.EQ → ALU.br → NPC.br`；`SEXT(EXT_B).ext → NPC.offset`；`PC.pc → NPC.pc` | `npc_op=NPC_BRA`；`br?pc+ext:pc4`；不写 RF |
+| BNE | `rD1/rD2 → A0/B0 → ALU.NE → br → NPC`；`EXT_B → NPC.offset` | `npc_op=NPC_BRA`；不写 RF |
+| BLT | `rD1/rD2 → ALU.LT(有符号) → br → NPC`；`EXT_B → offset` | 成立选 `pc+ext`，否则 `pc4` |
+| BGE | `rD1/rD2 → ALU.GE(有符号) → br → NPC`；`EXT_B → offset` | 成立选 `pc+ext`，否则 `pc4` |
+| BLTU | `rD1/rD2 → ALU.LTU(无符号) → br → NPC`；`EXT_B → offset` | 成立选 `pc+ext`，否则 `pc4` |
+| BGEU | `rD1/rD2 → ALU.GEU(无符号) → br → NPC`；`EXT_B → offset` | 成立选 `pc+ext`，否则 `pc4` |
+| LUI | `Inst_ROM.inst[31:12] → SEXT(EXT_U).ext → WB MUX(WB3) → RF.wD(rd)` | `rf_wsel=WB_EXT`；`PC←pc4`；ALU 结果无效 |
+| AUIPC | `PC.pc → A MUX(A1)` + `SEXT(EXT_U).ext → B MUX(B1) → ALU.ADD → C → WB0 → RF.wD(rd)` | 写回 `pc+U-ext`；`NPC.pc4 → PC` |
+| JAL | `PC.pc → NPC.pc` + `SEXT(EXT_J).ext → NPC.offset → NPC.npc=pc+ext → PC.npc`；同时 `NPC.pc4 → WB2 → RF.wD(rd)` | `npc_op=NPC_JMP, rf_wsel=WB_PC4` |
+| JALR | `RF.rD1 → NPC.base` + `SEXT(EXT_I).ext → NPC.offset → NPC.npc=(base+offset) & ~1 → PC.npc`；同时 `NPC.pc4 → WB2 → RF.wD(rd)` | `npc_op=NPC_JALR`；目标地址不经过 ALU |
+
+### M 扩展（7 条）
+
+M 指令的公共输入通路为 `RF.rD1 → A MUX(A0)` 和 `RF.rD2 → B MUX(B0) → ALU`。ALU 启动迭代单元后，`mul_div_busy=1` 期间 PC 保持；撤销后 `ALU.C → WB0 → RF.wD(rd)`，并令 `NPC.pc4 → PC`。
+
+| 指令 | ALU 内部有效路径 | 结果通路 |
+|---|---|---|
+| MUL | `rD1/rD2 → 有符号迭代乘法器 → 64位乘积[31:0]` | `ALU.C → WB0 → RF.wD(rd)` |
+| MULH | `rD1/rD2 → 有符号迭代乘法器 → 64位乘积[63:32]` | `ALU.C → WB0 → RF.wD(rd)` |
+| MULHU | `rD1/rD2 → 33位零扩展无符号乘法器 → 乘积[63:32]` | `ALU.C → WB0 → RF.wD(rd)` |
+| DIV | `rD1/rD2 → 有符号除法预处理 → 恢复余数除法器 → 商符号修正` | `ALU.C(商) → WB0 → RF.wD(rd)` |
+| DIVU | `rD1/rD2 → 无符号恢复余数除法器 → 无符号商` | `ALU.C → WB0 → RF.wD(rd)` |
+| REM | `rD1/rD2 → 有符号除法迭代 → 余数按被除数符号修正` | `ALU.C(余数) → WB0 → RF.wD(rd)` |
+| REMU | `rD1/rD2 → 无符号除法迭代 → 无符号余数` | `ALU.C → WB0 → RF.wD(rd)` |
+
 ## 完成状态与工作记录
 
 - [x] 分析 A/B 组及模板指令的格式、立即数、操作数、写回数据、访存方式和 PC 更新方式，完成数据通路表、控制信号表及完整数据通路图。
