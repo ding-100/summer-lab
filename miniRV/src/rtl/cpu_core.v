@@ -11,7 +11,7 @@ module cpu_core(
     output wire [31:0]  ifetch_addr  /* verilator public */ ,
     input  wire         ifetch_valid /* verilator public */ ,
     input  wire [31:0]  ifetch_inst,
-    
+
     // Data Access Interface
     output reg  [ 3:0]  daccess_ren,
     output reg  [31:0]  daccess_addr,
@@ -22,258 +22,476 @@ module cpu_core(
     input  wire         daccess_wresp
 );
 
-    // PC and NPC
-    wire [31:0] pc;
-    wire [31:0] npc;
-    wire [31:0] pc4;
-    wire [31:0] inst;
+    /***************************** IF *****************************/
+    reg  [31:0] fetch_next_pc;
+    reg  [31:0] fetch_pc_r;
+    reg         fetch_outstanding;
 
-    // Controller
-    wire [ 1:0] npc_op;
-    wire [ 1:0] rf_wsel;
-    wire [ 2:0] sext_op;
-    wire [ 4:0] alu_op;
-    wire        alua_sel;
-    wire        alub_sel;
-    wire [ 2:0] ram_rop;
-    reg  [ 2:0] ram_rop_r;
-    wire [ 3:0] ram_wop;
-    wire        is_mul;
-    wire        is_div;
-    wire        is_mul_div;
-    reg         mul_div_flag;       // 乘除法运算的标志位信号
+    reg         if_id_valid;
+    reg  [31:0] if_id_pc;
+    reg  [31:0] if_id_inst;
 
-    // Register File
+    /***************************** ID *****************************/
+    wire [ 1:0] id_npc_op;
+    wire [ 1:0] id_rf_wsel;
+    wire [ 2:0] id_sext_op;
+    wire [ 4:0] id_alu_op;
+    wire        id_alua_sel;
+    wire        id_alub_sel;
+    wire [ 2:0] id_ram_rop;
+    wire [ 3:0] id_ram_wop;
+    wire        id_is_mul;
+    wire        id_is_div;
+    wire        id_rf_we;
+    wire        id_use_rs1;
+    wire        id_use_rs2;
+    wire [31:0] id_ext;
     wire [31:0] rf_rd1;
     wire [31:0] rf_rd2;
-    wire [31:0] rf_rd3;
-    wire        rf_we;
-    wire        rf_we1;
-    reg  [ 4:0] rf_wR_r;
-    wire [ 4:0] rf_wR;
-    reg  [31:0] rf_wD;
 
-    // Signed Extension
-    wire [31:0] ext;
-
-    // ALU
-    wire [31:0] alu_a;
-    wire [31:0] alu_b;
-    wire [31:0] alu_c;
-    reg  [31:0] alu_c_r;
-    wire        br;
-    wire        mul_div_busy;
-    
-    // Memory Access
-    wire [ 3:0] da_ren;
-    wire [31:0] da_addr;
-    wire [ 3:0] da_wen;
-    wire [31:0] da_wdata;
-    wire [31:0] ram_ext;
-    wire        is_ld_st;
-    wire        is_ld_st_req;
-    wire        mem_aligned;
-    reg         ld_st_flag;
-    wire        ld_st_done;         // 访存完成的标志位信号
-
-    wire        inst_finished;      // 指令执行完成的标志位信号
-    reg         inst_finished_r;
-
-    /***************************** IF *****************************/
-    reg rst_r;
-    wire first_req = rst_r & !cpu_rst;
-    always @(posedge cpu_clk) rst_r <= cpu_rst;
-
-    // 复位信号发生边沿变化时首次取指; 当前指令执行完毕后取下一条指令
-    assign ifetch_req  = first_req | inst_finished_r;
-    assign ifetch_addr = pc;
-
-    NPC U_NPC (
-        .op         (npc_op),
-        .pc         (pc),
-        .base       (rf_rd1),
-        .offset     (ext),
-        .br         (br),
-        .npc        (npc),
-        .pc4        (pc4)
-    );
-
-    PC U_PC (
-        .clk        (cpu_clk),
-        .rst        (cpu_rst),
-        .npc        (npc),
-        .fetch      (inst_finished),
-        .pc         (pc)
-    );
-    
-    /***************************** ID *****************************/
-    // 按照约定的时序，ifetch_inst只在ifetch_valid有效时有效，且它们仅有效1个时钟.
-    // 此处是为了避免ifetch_valid撤销后，ifetch_inst发生变化从而导致指令执行出错.
-    assign inst = ifetch_valid ? ifetch_inst : 32'h13 /* NOP */ ;
+    wire [ 4:0] id_rs1 = if_id_inst[19:15];
+    wire [ 4:0] id_rs2 = if_id_inst[24:20];
+    wire [ 4:0] id_rd  = if_id_inst[11:7];
+    wire        id_is_mem = (id_ram_rop != `RAM_EXT_N) | (id_ram_wop != `RAM_WE_N);
+    wire        id_is_mul_div = id_is_mul | id_is_div;
 
     Controller U_CU (
-        // input
-        .opcode         (inst[6:0]),
-        .funct3         (inst[14:12]),
-        .funct7         (inst[31:25]),
-        // output
-        .npc_op         (npc_op),
-        .sext_op        (sext_op),
-        .alu_op         (alu_op),
-        .alua_sel       (alua_sel),
-        .alub_sel       (alub_sel),
-        .is_mul         (is_mul),
-        .is_div         (is_div),
-        .ram_r_op       (ram_rop),
-        .ram_w_op       (ram_wop),
-        .rf_we          (rf_we),
-        .rf_wsel        (rf_wsel)
-    );
-
-    RF U_RF (
-        .clk        (cpu_clk),
-        .rR1        (inst[19:15]),
-        .rR2        (inst[24:20]),
-        .rD1        (rf_rd1),
-        .rD2        (rf_rd2),
-        .we         (rf_we1),
-        .wR         (rf_wR),
-        .wD         (rf_wD)
+        .opcode     (if_id_inst[6:0]),
+        .funct3     (if_id_inst[14:12]),
+        .funct7     (if_id_inst[31:25]),
+        .npc_op     (id_npc_op),
+        .sext_op    (id_sext_op),
+        .alu_op     (id_alu_op),
+        .alua_sel   (id_alua_sel),
+        .alub_sel   (id_alub_sel),
+        .is_mul     (id_is_mul),
+        .is_div     (id_is_div),
+        .ram_r_op   (id_ram_rop),
+        .ram_w_op   (id_ram_wop),
+        .rf_we      (id_rf_we),
+        .rf_wsel    (id_rf_wsel),
+        .use_rs1    (id_use_rs1),
+        .use_rs2    (id_use_rs2)
     );
 
     SEXT U_SEXT (
-        .op         (sext_op),
-        .imm        (inst[31:7]),
-        .ext        (ext)
+        .op         (id_sext_op),
+        .imm        (if_id_inst[31:7]),
+        .ext        (id_ext)
     );
-    
-    // 遇到访存指令时, 拉高ld_st_flag标志位，表示正在执行访存指令
-    assign is_ld_st = (ram_rop != `RAM_EXT_N) | (ram_wop != `RAM_WE_N);
-    assign mem_aligned = (ram_rop == `RAM_EXT_B)  | (ram_rop == `RAM_EXT_BU) |
-                         (ram_wop == `RAM_WE_B) |
-                        ((ram_rop == `RAM_EXT_H)  | (ram_rop == `RAM_EXT_HU) |
-                         (ram_wop == `RAM_WE_H)) & !alu_c[0] |
-                        ((ram_rop == `RAM_EXT_W)  | (ram_wop == `RAM_WE_W)) & (alu_c[1:0] == 2'b00);
-    assign is_ld_st_req = is_ld_st & mem_aligned;
-    always @(posedge cpu_clk or posedge cpu_rst) begin
-        if      (cpu_rst)    ld_st_flag <= 1'b0;
-        else if (is_ld_st_req) ld_st_flag <= 1'b1;
-        else if (ld_st_done) ld_st_flag <= 1'b0;
-    end
 
-    // 遇到乘除法指令时，拉高mul_div_flag标志位，表示正在执行乘除法指令
-    assign is_mul_div = is_mul | is_div;
-    always @(posedge cpu_clk or posedge cpu_rst) begin
-        if      (cpu_rst)       mul_div_flag <= 1'b0;
-        else if (is_mul_div)    mul_div_flag <= 1'b1;
-        else if (!mul_div_busy) mul_div_flag <= 1'b0;
-    end
+    /***************************** WB *****************************/
+    reg         mem_wb_valid;
+    reg  [31:0] mem_wb_pc;
+    reg  [ 4:0] mem_wb_rd;
+    reg         mem_wb_rf_we;
+    reg  [31:0] mem_wb_data;
 
-    // 访存、乘除法指令无法在1个时钟内执行完，故先把指令的目标寄存器缓存起来
-    always @(posedge cpu_clk) begin
-        if (is_ld_st_req | is_mul_div) rf_wR_r <= inst[11:7];
-    end
+    wire        rf_we1 = mem_wb_valid & mem_wb_rf_we;
+    wire        id_forward_rs1_wb;
+    wire        id_forward_rs2_wb;
+    wire [ 1:0] ex_forward_rs1_sel;
+    wire [ 1:0] ex_forward_rs2_sel;
+    wire        fetch_pause;
+    wire        redirect_fire;
+    wire        flush_if_id;
+    wire        flush_id_ex;
+
+    wire [31:0] id_rs1_data = id_forward_rs1_wb ? mem_wb_data : rf_rd1;
+    wire [31:0] id_rs2_data = id_forward_rs2_wb ? mem_wb_data : rf_rd2;
+
+    RF U_RF (
+        .clk        (cpu_clk),
+        .rR1        (id_rs1),
+        .rR2        (id_rs2),
+        .rD1        (rf_rd1),
+        .rD2        (rf_rd2),
+        .we         (rf_we1),
+        .wR         (mem_wb_rd),
+        .wD         (mem_wb_data)
+    );
+
+    /*************************** ID/EX ****************************/
+    reg         id_ex_valid;
+    reg  [31:0] id_ex_pc;
+    reg  [31:0] id_ex_pc4;
+    reg  [ 4:0] id_ex_rs1;
+    reg  [ 4:0] id_ex_rs2;
+    reg  [ 4:0] id_ex_rd;
+    reg  [31:0] id_ex_rs1_data;
+    reg  [31:0] id_ex_rs2_data;
+    reg  [31:0] id_ex_ext;
+    reg         id_ex_use_rs1;
+    reg         id_ex_use_rs2;
+    reg  [ 1:0] id_ex_npc_op;
+    reg  [ 1:0] id_ex_rf_wsel;
+    reg  [ 4:0] id_ex_alu_op;
+    reg         id_ex_alua_sel;
+    reg         id_ex_alub_sel;
+    reg  [ 2:0] id_ex_ram_rop;
+    reg  [ 3:0] id_ex_ram_wop;
+    reg         id_ex_rf_we;
+    reg         id_ex_is_mul_div;
+
+    wire id_ex_is_mem = (id_ex_ram_rop != `RAM_EXT_N) | (id_ex_ram_wop != `RAM_WE_N);
 
     /***************************** EX *****************************/
-    assign alu_a = alua_sel ? pc  : rf_rd1;
-    assign alu_b = alub_sel ? ext : rf_rd2;
+    reg         ex_mem_valid;
+    reg  [31:0] ex_mem_pc;
+    reg  [ 4:0] ex_mem_rd;
+    reg         ex_mem_rf_we;
+    reg  [ 1:0] ex_mem_rf_wsel;
+    reg  [31:0] ex_mem_result;
+    reg  [31:0] ex_mem_addr;
+    reg  [31:0] ex_mem_store_data;
+    reg  [ 2:0] ex_mem_ram_rop;
+    reg  [ 3:0] ex_mem_ram_wop;
+    reg         ex_mem_mem_aligned;
+    wire [31:0] mem_load_data;
+
+    wire ex_mem_is_load  = ex_mem_ram_rop != `RAM_EXT_N;
+    wire ex_mem_is_store = ex_mem_ram_wop != `RAM_WE_N;
+    wire ex_mem_is_mem   = ex_mem_is_load | ex_mem_is_store;
+
+    wire [31:0] ex_mem_forward_data = ex_mem_is_load ? mem_load_data : ex_mem_result;
+
+    wire [31:0] ex_rs1_data = ex_forward_rs1_sel == 2'b10 ? ex_mem_forward_data :
+                              ex_forward_rs1_sel == 2'b01 ? mem_wb_data :
+                                                           id_ex_rs1_data;
+    wire [31:0] ex_rs2_data = ex_forward_rs2_sel == 2'b10 ? ex_mem_forward_data :
+                              ex_forward_rs2_sel == 2'b01 ? mem_wb_data :
+                                                           id_ex_rs2_data;
+
+    reg         muldiv_started;
+    wire [ 4:0] alu_op_drive = !id_ex_valid ? `ALU_ADD :
+                               id_ex_is_mul_div ?
+                               (muldiv_started ? `ALU_ADD : id_ex_alu_op) : id_ex_alu_op;
+    wire [31:0] alu_a = id_ex_alua_sel ? id_ex_pc  : ex_rs1_data;
+    wire [31:0] alu_b = id_ex_alub_sel ? id_ex_ext : ex_rs2_data;
+    wire [31:0] alu_c;
+    wire        alu_br;
+    wire        mul_div_busy;
 
     ALU U_ALU (
         .rst        (cpu_rst),
         .clk        (cpu_clk),
-        .op         (alu_op),
+        .op         (alu_op_drive),
         .a          (alu_a),
         .b          (alu_b),
-        .br         (br),
+        .br         (alu_br),
         .c          (alu_c),
         .busy       (mul_div_busy)
     );
 
-    /***************************** MEM *****************************/
+    wire [31:0] ex_npc;
+    wire [31:0] ex_pc4_unused;
+    NPC U_NPC (
+        .op         (id_ex_npc_op),
+        .pc         (id_ex_pc),
+        .base       (ex_rs1_data),
+        .offset     (id_ex_ext),
+        .br         (alu_br),
+        .npc        (ex_npc),
+        .pc4        (ex_pc4_unused)
+    );
+
+    wire [31:0] ex_result = id_ex_rf_wsel == `WB_PC4 ? id_ex_pc4 :
+                                id_ex_rf_wsel == `WB_EXT ? id_ex_ext : alu_c;
+    wire ex_mem_aligned = (id_ex_ram_rop == `RAM_EXT_B)  | (id_ex_ram_rop == `RAM_EXT_BU) |
+                          (id_ex_ram_wop == `RAM_WE_B) |
+                         ((id_ex_ram_rop == `RAM_EXT_H)  | (id_ex_ram_rop == `RAM_EXT_HU) |
+                          (id_ex_ram_wop == `RAM_WE_H)) & !alu_c[0] |
+                         ((id_ex_ram_rop == `RAM_EXT_W)  | (id_ex_ram_wop == `RAM_WE_W)) &
+                          (alu_c[1:0] == 2'b00);
+
+    wire muldiv_done = id_ex_is_mul_div && muldiv_started && !mul_div_busy;
+
+    /***************************** MEM ****************************/
+    wire [ 3:0] mem_da_ren;
+    wire [31:0] mem_da_addr;
+    wire [ 3:0] mem_da_wen;
+    wire [31:0] mem_da_wdata;
+    reg         mem_req_sent;
+
     MREQ U_MEM_REQ (
-        .ram_addr   (alu_c),
-
-        .ram_rop    (ram_rop),
-        .da_ren     (da_ren),
-        .da_addr    (da_addr),
-
-        .ram_wop    (ram_wop),
-        .ram_wdata  (rf_rd2),
-        .da_wen     (da_wen),
-        .da_wdata   (da_wdata)
+        .ram_addr   (ex_mem_addr),
+        .ram_rop    (ex_mem_ram_rop),
+        .da_ren     (mem_da_ren),
+        .da_addr    (mem_da_addr),
+        .ram_wop    (ex_mem_ram_wop),
+        .ram_wdata  (ex_mem_store_data),
+        .da_wen     (mem_da_wen),
+        .da_wdata   (mem_da_wdata)
     );
 
     MEXT U_MEM_EXT (
-        .op             (ram_rop_r),
-        .din            (daccess_rdata),
-        .byte_offs      (alu_c_r[1:0]),
-        .ext            (ram_ext)
+        .op         (ex_mem_ram_rop),
+        .din        (daccess_rdata),
+        .byte_offs  (ex_mem_addr[1:0]),
+        .ext        (mem_load_data)
     );
 
-    always @(posedge cpu_clk) if (is_ld_st_req) alu_c_r   <= alu_c;
-    always @(posedge cpu_clk) if (is_ld_st_req) ram_rop_r <= ram_rop;
+    wire mem_response = ex_mem_is_load ? daccess_rvalid : daccess_wresp;
+    wire mem_complete = !ex_mem_is_mem || !ex_mem_mem_aligned ||
+                        (mem_req_sent && mem_response);
+    wire mem_stage_ready = !ex_mem_valid || mem_complete;
+    wire mem_fire = ex_mem_valid && mem_stage_ready;
+    wire ex_mem_can_accept = mem_stage_ready;
 
-    // Interface to Bus
+    wire ex_stage_ready = !id_ex_valid || !id_ex_is_mul_div || muldiv_done;
+    wire ex_fire = id_ex_valid && ex_stage_ready && ex_mem_can_accept;
+    wire id_ex_can_accept = !id_ex_valid || ex_fire;
+
+    wire branch_taken = (id_ex_npc_op == `NPC_JMP) ||
+                        (id_ex_npc_op == `NPC_JALR) ||
+                        ((id_ex_npc_op == `NPC_BRA) && alu_br);
+    wire [31:0] redirect_target = ex_npc;
+
+    wire id_fire = if_id_valid && id_ex_can_accept && !redirect_fire;
+    wire if_slot_ready = !if_id_valid || id_fire || redirect_fire;
+
+    wire id_ex_long_block = id_ex_valid &&
+                            (id_ex_is_mem || (id_ex_is_mul_div && !muldiv_done));
+    wire ex_mem_long_block = ex_mem_valid && ex_mem_is_mem && !mem_complete;
+
+    HazardUnit U_HAZARD (
+        .id_valid              (if_id_valid),
+        .id_use_rs1            (id_use_rs1),
+        .id_use_rs2            (id_use_rs2),
+        .id_rs1                (id_rs1),
+        .id_rs2                (id_rs2),
+        .ex_valid              (id_ex_valid),
+        .ex_use_rs1            (id_ex_use_rs1),
+        .ex_use_rs2            (id_ex_use_rs2),
+        .ex_rs1                (id_ex_rs1),
+        .ex_rs2                (id_ex_rs2),
+        .mem_valid             (ex_mem_valid),
+        .mem_rf_we             (ex_mem_rf_we),
+        .mem_value_ready       (!ex_mem_is_load ||
+                                (ex_mem_mem_aligned && daccess_rvalid)),
+        .mem_rd                (ex_mem_rd),
+        .wb_valid              (mem_wb_valid),
+        .wb_rf_we              (mem_wb_rf_we),
+        .wb_rd                 (mem_wb_rd),
+        .id_can_advance        (id_ex_can_accept),
+        .id_is_long            (id_is_mem || id_is_mul_div),
+        .ex_long_block         (id_ex_long_block),
+        .mem_long_block        (ex_mem_long_block),
+        .ex_fire               (ex_fire),
+        .branch_taken          (branch_taken),
+        .id_forward_rs1_wb     (id_forward_rs1_wb),
+        .id_forward_rs2_wb     (id_forward_rs2_wb),
+        .ex_forward_rs1_sel    (ex_forward_rs1_sel),
+        .ex_forward_rs2_sel    (ex_forward_rs2_sel),
+        .fetch_pause           (fetch_pause),
+        .redirect_fire         (redirect_fire),
+        .flush_if_id           (flush_if_id),
+        .flush_id_ex           (flush_id_ex)
+    );
+
+    wire normal_fetch_req = if_slot_ready && !fetch_pause &&
+                            (!fetch_outstanding || ifetch_valid);
+    assign ifetch_req  = !cpu_rst && (redirect_fire || normal_fetch_req);
+    assign ifetch_addr = redirect_fire ? redirect_target : fetch_next_pc;
+
+    /************************ Sequential control *****************/
     always @(posedge cpu_clk or posedge cpu_rst) begin
         if (cpu_rst) begin
-            daccess_ren   <= 4'h0;
-            daccess_wen   <= 4'h0;
+            fetch_next_pc    <= 32'h0;
+            fetch_pc_r       <= 32'h0;
+            fetch_outstanding<= 1'b0;
         end else begin
-            daccess_ren   <= da_ren;
-            daccess_addr  <= da_addr;
-            daccess_wen   <= da_wen;
-            daccess_wdata <= da_wdata;
+            case ({ifetch_req, ifetch_valid})
+                2'b10: fetch_outstanding <= 1'b1;
+                2'b01: fetch_outstanding <= 1'b0;
+                2'b11: fetch_outstanding <= 1'b1;
+                default: fetch_outstanding <= fetch_outstanding;
+            endcase
+
+            if (ifetch_req) begin
+                fetch_pc_r <= ifetch_addr;
+                fetch_next_pc <= redirect_fire ? redirect_target + 32'h4 :
+                                                  fetch_next_pc + 32'h4;
+            end
         end
     end
 
-    assign ld_st_done = daccess_rvalid | daccess_wresp;
-
-    /***************************** WB *****************************/
-    assign rf_we1 = ld_st_flag   & daccess_rvalid |                 // Load指令在读取到数据时写回
-                    mul_div_flag & !mul_div_busy  |                 // 乘除法指令在运算完成时写回
-                    ifetch_valid & rf_we & !is_ld_st & !is_mul_div; // 其他指令在取到指令时写回
-
-    assign rf_wR  = ld_st_flag | mul_div_flag ? rf_wR_r : inst[11:7];
-
-    always @(*) begin
-        casex ({ld_st_flag, rf_wsel})
-            {1'b0, `WB_ALU}: rf_wD = alu_c;
-            {1'b0, `WB_PC4}: rf_wD = pc4;
-            {1'b0, `WB_EXT}: rf_wD = ext;
-            {1'b1, 2'b??  }: rf_wD = ram_ext;
-            default        : rf_wD = 32'h0;
-        endcase
+    always @(posedge cpu_clk or posedge cpu_rst) begin
+        if (cpu_rst) begin
+            if_id_valid <= 1'b0;
+            if_id_pc    <= 32'h0;
+            if_id_inst  <= 32'h0000_0013;
+        end else if (flush_if_id) begin
+            if_id_valid <= 1'b0;
+            if_id_pc    <= 32'h0;
+            if_id_inst  <= 32'h0000_0013;
+        end else if (if_slot_ready) begin
+            if_id_valid <= ifetch_valid;
+            if (ifetch_valid) begin
+                if_id_pc   <= fetch_pc_r;
+                if_id_inst <= ifetch_inst;
+            end
+        end
     end
-
-    assign inst_finished = ld_st_flag   & ld_st_done    |           // 访存指令在读写完毕时执行完成
-                           mul_div_flag & !mul_div_busy |           // 乘除法指令在运算完毕时完成
-                           ifetch_valid & !is_ld_st_req & !is_mul_div; // 普通指令或未对齐访存在当前周期完成
 
     always @(posedge cpu_clk or posedge cpu_rst) begin
-        inst_finished_r <= cpu_rst ? 1'b0 : inst_finished;
+        if (cpu_rst || flush_id_ex) begin
+            id_ex_valid      <= 1'b0;
+            id_ex_pc         <= 32'h0;
+            id_ex_pc4        <= 32'h0;
+            id_ex_rs1        <= 5'h0;
+            id_ex_rs2        <= 5'h0;
+            id_ex_rd         <= 5'h0;
+            id_ex_rs1_data   <= 32'h0;
+            id_ex_rs2_data   <= 32'h0;
+            id_ex_ext        <= 32'h0;
+            id_ex_use_rs1    <= 1'b0;
+            id_ex_use_rs2    <= 1'b0;
+            id_ex_npc_op     <= `NPC_PC4;
+            id_ex_rf_wsel    <= `WB_ALU;
+            id_ex_alu_op     <= `ALU_ADD;
+            id_ex_alua_sel   <= `ALU_A_RS1;
+            id_ex_alub_sel   <= `ALU_B_RS2;
+            id_ex_ram_rop    <= `RAM_EXT_N;
+            id_ex_ram_wop    <= `RAM_WE_N;
+            id_ex_rf_we      <= 1'b0;
+            id_ex_is_mul_div <= 1'b0;
+        end else if (id_ex_can_accept) begin
+            id_ex_valid <= id_fire;
+            if (id_fire) begin
+                id_ex_pc         <= if_id_pc;
+                id_ex_pc4        <= if_id_pc + 32'h4;
+                id_ex_rs1        <= id_rs1;
+                id_ex_rs2        <= id_rs2;
+                id_ex_rd         <= id_rd;
+                id_ex_rs1_data   <= id_rs1_data;
+                id_ex_rs2_data   <= id_rs2_data;
+                id_ex_ext        <= id_ext;
+                id_ex_use_rs1    <= id_use_rs1;
+                id_ex_use_rs2    <= id_use_rs2;
+                id_ex_npc_op     <= id_npc_op;
+                id_ex_rf_wsel    <= id_rf_wsel;
+                id_ex_alu_op     <= id_alu_op;
+                id_ex_alua_sel   <= id_alua_sel;
+                id_ex_alub_sel   <= id_alub_sel;
+                id_ex_ram_rop    <= id_ram_rop;
+                id_ex_ram_wop    <= id_ram_wop;
+                id_ex_rf_we      <= id_rf_we;
+                id_ex_is_mul_div <= id_is_mul_div;
+            end
+        end else if (id_ex_valid) begin
+            // A stage held behind MEM may briefly see a producer in WB. Keep
+            // the forwarded value so it is not lost after that producer
+            // leaves the forwarding window.
+            if (id_ex_use_rs1) id_ex_rs1_data <= ex_rs1_data;
+            if (id_ex_use_rs2) id_ex_rs2_data <= ex_rs2_data;
+        end
     end
 
+    always @(posedge cpu_clk or posedge cpu_rst) begin
+        if (cpu_rst) begin
+            muldiv_started <= 1'b0;
+        end else if (!id_ex_valid || !id_ex_is_mul_div) begin
+            muldiv_started <= 1'b0;
+        end else if (!muldiv_started) begin
+            muldiv_started <= 1'b1;
+        end else if (ex_fire) begin
+            muldiv_started <= 1'b0;
+        end
+    end
 
+    always @(posedge cpu_clk or posedge cpu_rst) begin
+        if (cpu_rst) begin
+            ex_mem_valid       <= 1'b0;
+            ex_mem_pc          <= 32'h0;
+            ex_mem_rd          <= 5'h0;
+            ex_mem_rf_we       <= 1'b0;
+            ex_mem_rf_wsel     <= `WB_ALU;
+            ex_mem_result      <= 32'h0;
+            ex_mem_addr        <= 32'h0;
+            ex_mem_store_data  <= 32'h0;
+            ex_mem_ram_rop     <= `RAM_EXT_N;
+            ex_mem_ram_wop     <= `RAM_WE_N;
+            ex_mem_mem_aligned <= 1'b0;
+        end else if (mem_stage_ready) begin
+            ex_mem_valid <= ex_fire;
+            if (ex_fire) begin
+                ex_mem_pc          <= id_ex_pc;
+                ex_mem_rd          <= id_ex_rd;
+                ex_mem_rf_we       <= id_ex_rf_we;
+                ex_mem_rf_wsel     <= id_ex_rf_wsel;
+                ex_mem_result      <= ex_result;
+                ex_mem_addr        <= alu_c;
+                ex_mem_store_data  <= ex_rs2_data;
+                ex_mem_ram_rop     <= id_ex_ram_rop;
+                ex_mem_ram_wop     <= id_ex_ram_wop;
+                ex_mem_mem_aligned <= ex_mem_aligned;
+            end
+        end
+    end
+
+    always @(posedge cpu_clk or posedge cpu_rst) begin
+        if (cpu_rst) begin
+            daccess_ren   <= 4'h0;
+            daccess_addr  <= 32'h0;
+            daccess_wen   <= 4'h0;
+            daccess_wdata <= 32'h0;
+            mem_req_sent  <= 1'b0;
+        end else begin
+            daccess_ren <= 4'h0;
+            daccess_wen <= 4'h0;
+
+            if (ex_mem_valid && ex_mem_is_mem && ex_mem_mem_aligned && !mem_req_sent) begin
+                daccess_ren   <= mem_da_ren;
+                daccess_addr  <= mem_da_addr;
+                daccess_wen   <= mem_da_wen;
+                daccess_wdata <= mem_da_wdata;
+                mem_req_sent  <= 1'b1;
+            end
+
+            if (mem_fire && ex_mem_is_mem)
+                mem_req_sent <= 1'b0;
+        end
+    end
+
+    always @(posedge cpu_clk or posedge cpu_rst) begin
+        if (cpu_rst) begin
+            mem_wb_valid <= 1'b0;
+            mem_wb_pc    <= 32'h0;
+            mem_wb_rd    <= 5'h0;
+            mem_wb_rf_we <= 1'b0;
+            mem_wb_data  <= 32'h0;
+        end else begin
+            mem_wb_valid <= mem_fire;
+            if (mem_fire) begin
+                mem_wb_pc    <= ex_mem_pc;
+                mem_wb_rd    <= ex_mem_rd;
+                mem_wb_rf_we <= ex_mem_rf_we &&
+                                (!ex_mem_is_mem || ex_mem_mem_aligned);
+                mem_wb_data  <= ex_mem_is_load ? mem_load_data : ex_mem_result;
+            end
+        end
+    end
 
     /********************* Your CPU ends here *********************/
 
 `ifdef RUN_TRACE
-    wire [31:0] debug_wb_pc    /* verilator public */ ;     // WB阶段的PC
-    wire        debug_wb_rf_we /* verilator public */ ;     // WB阶段的寄存器写使能
-    wire [ 4:0] debug_wb_rf_wR /* verilator public */ ;     // WB阶段的目标寄存器   (若wb_rf_we为0，此项可为任意值)
-    wire [31:0] debug_wb_rf_wD /* verilator public */ ;     // WB阶段写入寄存器的值 (若wb_rf_we为0，此项可为任意值)
+    wire [31:0] debug_wb_pc    /* verilator public */ ;
+    wire        debug_wb_rf_we /* verilator public */ ;
+    wire [ 4:0] debug_wb_rf_wR /* verilator public */ ;
+    wire [31:0] debug_wb_rf_wD /* verilator public */ ;
 
-    wire [31:0] debug_mem_pc    /* verilator public */ ;    // MEM阶段的PC
-    wire [ 3:0] debug_mem_we    /* verilator public */ ;    // MEM阶段写访存时的写使能
-    wire [31:0] debug_mem_waddr /* verilator public */ ;    // MEM阶段写访存时的写地址 (若mem_we为0，此项可为任意值)
-    wire [31:0] debug_mem_wdata /* verilator public */ ;    // MEM阶段写访存时的写数据 (若mem_we为0，此项可为任意值)
+    wire [31:0] debug_mem_pc    /* verilator public */ ;
+    wire [ 3:0] debug_mem_we    /* verilator public */ ;
+    wire [31:0] debug_mem_waddr /* verilator public */ ;
+    wire [31:0] debug_mem_wdata /* verilator public */ ;
 
-    assign debug_wb_pc    = pc;
+    assign debug_wb_pc    = mem_wb_pc;
     assign debug_wb_rf_we = rf_we1;
-    assign debug_wb_rf_wR = rf_wR;
-    assign debug_wb_rf_wD = rf_wD;
+    assign debug_wb_rf_wR = mem_wb_rd;
+    assign debug_wb_rf_wD = mem_wb_data;
 
-    assign debug_mem_pc    = pc;
+    assign debug_mem_pc    = ex_mem_pc;
     assign debug_mem_we    = daccess_wen;
     assign debug_mem_waddr = daccess_addr;
     assign debug_mem_wdata = daccess_wdata;

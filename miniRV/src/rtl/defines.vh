@@ -1,7 +1,7 @@
 // `define RUN_TRACE
 
-// `define ENABLE_ICACHE
-// `define ENABLE_DCACHE
+`define ENABLE_ICACHE
+`define ENABLE_DCACHE
 
 `define PC_INIT_VAL 32'h0
 

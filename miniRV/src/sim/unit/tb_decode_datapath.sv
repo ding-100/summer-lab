@@ -8,7 +8,7 @@ module tb_decode_datapath;
     wire [2:0] sext_op, ram_r_op;
     wire [3:0] ram_w_op;
     wire [4:0] alu_op;
-    wire alua_sel, alub_sel, is_mul, is_div, rf_we;
+    wire alua_sel, alub_sel, is_mul, is_div, rf_we, use_rs1, use_rs2;
     reg [31:7] imm;
     wire [31:0] ext;
     reg [31:0] pc, offset, base, a, b;
@@ -41,9 +41,11 @@ module tb_decode_datapath;
         decode(7'b0100011, 3'b010, 7'b1111111);
         check(sext_op == `EXT_S && ext == 32'hffff_ffff, "S immediate");
         check(ram_w_op == `RAM_WE_W && !rf_we, "SW decode");
+        check(use_rs1 && use_rs2, "SW source usage");
 
         decode(7'b1100111, 3'b000, 0);
         check(npc_op == `NPC_JALR && rf_we && rf_wsel == `WB_PC4, "JALR decode");
+        check(use_rs1 && !use_rs2, "JALR source usage");
         pc=32'h100; base=32'h205; offset=32'hfffffffc; br=0; #1;
         check(npc == 32'h200, "JALR target clears bit0");
 
@@ -63,6 +65,10 @@ module tb_decode_datapath;
         decode(7'b1100011,3'b111,0); a=32'hffffffff; b=1; #1; check(alu_br,"BGEU");
 
         decode(7'b0010111,0,0); check(alua_sel==`ALU_A_PC && alub_sel==`ALU_B_EXT && rf_we,"AUIPC");
+        check(!use_rs1 && !use_rs2, "AUIPC has no RF source");
+        decode(7'b0010011,3'b000,0); check(use_rs1 && !use_rs2, "OP-IMM source usage");
+        decode(7'b1101111,0,0); check(!use_rs1 && !use_rs2, "JAL has no RF source");
+        decode(7'b1100011,3'b000,0); check(use_rs1 && use_rs2, "Branch source usage");
 
         // 逐条覆盖 37 条基础指令与 7 条 M 扩展指令。
         expect_ctl(7'b0110011,3'b000,7'b0000000,`ALU_ADD, 1,0,0,"ADD ctl");

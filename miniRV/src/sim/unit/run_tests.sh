@@ -20,13 +20,15 @@ case "${1:-all}" in
     multiplier) run_test tb_multiplier "$RTL/multiplier.v" ;;
     divider) run_test tb_divider "$RTL/divider.v" ;;
     alu_muldiv) run_test tb_alu_muldiv "$RTL/defines.vh" "$RTL/multiplier.v" "$RTL/divider.v" "$RTL/ALU.v" ;;
-    core) run_test tb_cpu_core "$RTL/defines.vh" "$RTL/PC.v" "$RTL/NPC.v" "$RTL/RF.v" "$RTL/SEXT.v" "$RTL/Controller.v" "$RTL/MREQ.v" "$RTL/MEXT.v" "$RTL/multiplier.v" "$RTL/divider.v" "$RTL/ALU.v" "$RTL/cpu_core.v" ;;
+    hazard) run_test tb_hazard_unit "$RTL/HazardUnit.v" ;;
+    core) run_test tb_cpu_core "$RTL/defines.vh" "$RTL/PC.v" "$RTL/NPC.v" "$RTL/RF.v" "$RTL/SEXT.v" "$RTL/Controller.v" "$RTL/HazardUnit.v" "$RTL/MREQ.v" "$RTL/MEXT.v" "$RTL/multiplier.v" "$RTL/divider.v" "$RTL/ALU.v" "$RTL/cpu_core.v" ;;
     all)
         "$0" decode
         "$0" memory
         "$0" multiplier
         "$0" divider
         "$0" alu_muldiv
+        "$0" hazard
         "$0" core
         ;;
     *) echo "unknown test: $1" >&2; exit 2 ;;

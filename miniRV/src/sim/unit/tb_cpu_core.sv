@@ -5,6 +5,8 @@ module tb_cpu_core;
     wire [3:0] daccess_ren,daccess_wen; wire [31:0] daccess_addr,daccess_wdata;
     reg daccess_rvalid=0,daccess_wresp=0; reg [31:0] daccess_rdata=0;
     reg [31:0] imem[0:15]; reg [31:0] dmem[0:15]; integer errors=0, cycles=0, i;
+    integer load_req_count=0, store_req_count=0, mul_start_count=0, div_start_count=0;
+    reg saw_three_inflight=0;
     always #1 cpu_clk=~cpu_clk;
     cpu_core dut(.*);
 
@@ -25,14 +27,27 @@ module tb_cpu_core;
         cycles <= cycles+1; ifetch_valid<=0; daccess_rvalid<=0; daccess_wresp<=0;
         if(ifetch_req) begin ifetch_inst<=imem[ifetch_addr[5:2]]; ifetch_valid<=1; end
         if(|daccess_wen) begin
+            store_req_count<=store_req_count+1;
             if(daccess_wen[0])dmem[daccess_addr[5:2]][7:0]<=daccess_wdata[7:0];
             if(daccess_wen[1])dmem[daccess_addr[5:2]][15:8]<=daccess_wdata[15:8];
             if(daccess_wen[2])dmem[daccess_addr[5:2]][23:16]<=daccess_wdata[23:16];
             if(daccess_wen[3])dmem[daccess_addr[5:2]][31:24]<=daccess_wdata[31:24];
             daccess_wresp<=1;
         end
-        if(|daccess_ren) begin daccess_rdata<=dmem[daccess_addr[5:2]]; daccess_rvalid<=1; end
-        if(cycles>700)$fatal(1,"core timeout pc=%h",ifetch_addr);
+        if(|daccess_ren) begin
+            load_req_count<=load_req_count+1;
+            daccess_rdata<=dmem[daccess_addr[5:2]]; daccess_rvalid<=1;
+        end
+        if(dut.U_ALU.mul_start || dut.U_ALU.mulu_start) mul_start_count<=mul_start_count+1;
+        if(dut.U_ALU.div_start || dut.U_ALU.divu_start) div_start_count<=div_start_count+1;
+        if(dut.if_id_valid+dut.id_ex_valid+dut.ex_mem_valid+dut.mem_wb_valid>=3)
+            saw_three_inflight<=1;
+        if(cycles>700) begin
+            $display("PIPE ifid=%b idex=%b exmem=%b memwb=%b md_started=%b md_busy=%b mem_req=%b",
+                     dut.if_id_valid,dut.id_ex_valid,dut.ex_mem_valid,dut.mem_wb_valid,
+                     dut.muldiv_started,dut.mul_div_busy,dut.mem_req_sent);
+            $fatal(1,"core timeout pc=%h",ifetch_addr);
+        end
     end
 
     task check(input bit ok,input string name);if(!ok)begin $display("FAIL %s",name);errors=errors+1;end endtask
@@ -61,6 +76,9 @@ module tb_cpu_core;
         check(dut.U_RF.regs[6]===15,"MUL writeback"); check(dut.U_RF.regs[7]===1,"DIV writeback");
         check(dut.U_RF.regs[11]===77,"unaligned LW has no writeback"); check(dut.U_RF.regs[12]===9,"unaligned LW advances");
         check(dut.U_RF.regs[13]===52,"AUIPC writeback"); check(dut.U_RF.regs[14]===60,"JALR link");
+        check(saw_three_inflight,"five-stage overlap");
+        check(load_req_count==1,"one aligned Load request"); check(store_req_count==1,"one Store request");
+        check(mul_start_count==1,"single MUL start"); check(div_start_count==1,"single DIV start");
         if(errors==0)$display("PASS tb_cpu_core");else $fatal(1,"%0d failures",errors);$finish;
     end
 endmodule
